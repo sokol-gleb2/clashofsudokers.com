@@ -1,0 +1,13 @@
+Custom font:
+https://dev.to/abhidatta0/add-custom-fonts-google-fonts-to-react-native-070-1773
+
+Update node:
+1. sudo npm cache clean -f (force) clear you npm cache
+2. sudo npm install -g n install n (this might take a while)
+3. sudo n stable upgrade to the current stable version
+
+Update npm:
+npm i -g npm
+
+Update package-lock.json after updates:
+npm update --save
