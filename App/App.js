@@ -6,18 +6,89 @@ import { StyleSheet, Text, View, Image, TextInput, TouchableHighlight } from 're
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 import { useFonts } from 'expo-font';
 
+const API_URL = Platform.OS === 'ios' ? 'http://localhost:3000' : 'http://10.0.2.2:3000';
+
 export default function App() {
 
-    // State variable to hold the password 
-    const [password, setPassword] = useState(''); 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState(''); 
+  const [isError, setIsError] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+
+  const onChangeHandler = () => {
+    setIsLogin(!isLogin);
+    setMessage('');
+  };
+
+  const onLoggedIn = token => {
+    fetch(`${API_URL}/private`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`, 
+        },
+    })
+    .then(async res => { 
+        try {
+            const jsonRes = await res.json();
+            if (res.status === 200) {
+                setMessage(jsonRes.message);
+            }
+        } catch (err) {
+            console.log(err);
+        };
+    })
+    .catch(err => {
+        console.log(err);
+    });
+  }
+
+  const onSubmitHandler = () => {
+    const payload = {
+        email,
+        password,
+    };
+    fetch(`${API_URL}/${isLogin ? 'login' : 'signup'}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    })
+    .then(async res => { 
+        try {
+            const jsonRes = await res.json();
+            if (res.status !== 200) {
+                setIsError(true);
+                setMessage(jsonRes.message);
+            } else {
+                onLoggedIn(jsonRes.token);
+                setIsError(false);
+                setMessage(jsonRes.message);
+            }
+        } catch (err) {
+            console.log(err);
+        };
+    })
+    .catch(err => {
+        console.log(err);
+    });
+  };
+
+
+  const getMessage = () => {
+    const status = isError ? `Error: ` : `Success: `;
+    return status + message;
+  }
   
-    // State variable to track password visibility 
-    const [showPassword, setShowPassword] = useState(false); 
-  
-    // Function to toggle the password visibility state 
-    const toggleShowPassword = () => { 
-        setShowPassword(!showPassword); 
-    }; 
+  // State variable to track password visibility 
+  const [showPassword, setShowPassword] = useState(false); 
+
+  // Function to toggle the password visibility state 
+  const toggleShowPassword = () => { 
+      setShowPassword(!showPassword); 
+  };
 
   const [fontsLoaded] = useFonts({
     'Nunito-ExtraBold': require('../assets/fonts/Nunito-ExtraBold.ttf'),
@@ -43,14 +114,10 @@ export default function App() {
       <View style={styles.logInBoxesContainer}>
         <TextInput
           style={styles.usernameInput}
-          placeholder="Username"
+          placeholder="Email"
+          onChangeText={setEmail}
           keyboardType="text"
         />
-        {/* <TextInput
-          style={styles.passwordInput}
-          placeholder="Password"
-          keyboardType="text"
-        /> */}
         <View style={styles.passwordContainer}> 
           <TextInput 
               // Set secureTextEntry prop to hide  
@@ -70,7 +137,7 @@ export default function App() {
               onPress={toggleShowPassword} 
           /> 
         </View>
-        <TouchableHighlight style={styles.submitDetailsButton} onPress={()=>{}}>
+        <TouchableHighlight style={styles.submitDetailsButton} onPress={onSubmitHandler}>
           <MaterialCommunityIcons name={'arrow-right'} color={'white'} size={28}  />
         </TouchableHighlight>
       </View>
@@ -95,7 +162,8 @@ export default function App() {
           </View>
         </TouchableHighlight>
       </View>
-      
+
+      <Text style={[styles.loggedInMessage, {color: isError ? 'red' : 'green'}]}>{message ? getMessage() : null}</Text>      
 
       <View style={styles.signUpWriting}>
         <Text style={[{fontSize: 17}]}>Don't have an account? <Text style={[{textDecorationLine: 'underline', color: '#673AB7'}]}>Sign Up</Text></Text>
@@ -252,6 +320,13 @@ const styles = StyleSheet.create({
     width: 130,
     height: 1,
     backgroundColor: '#000'
+  },
+  loggedInMessage: {
+    position: 'absolute',
+    bottom: 60,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center'
   },
   signUpWriting: {
     position: 'absolute',
