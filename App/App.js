@@ -169,7 +169,7 @@ export default function App() {
         <Text style={[{fontSize: 17}]}>Don't have an account? <Text style={[{textDecorationLine: 'underline', color: '#673AB7'}]}>Sign Up</Text></Text>
       </View>
       
-      {/* <StatusBar style="auto" /> */}
+      <StatusBar style="auto" />
     </View>
   );
 }

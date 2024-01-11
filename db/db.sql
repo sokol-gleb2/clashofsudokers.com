@@ -1,11 +1,13 @@
-CREATE TABLE Users (
-    user_id int NOT NULL AUTO_INCREMENT,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    password VARCHAR(60) NOT NULL,
+-- https://www.oracle.com/database/technologies/appdev/quickstartnodeonprem.html#macos-tab
+-- https://chat.openai.com/c/d3001033-d23d-45c4-b5cc-529a570face6
 
-    PRIMARY KEY (user_id)
+CREATE TABLE Users ( 
+    username VARCHAR(20) NOT NULL, 
+    full_name VARCHAR(255) NOT NULL, 
+    email VARCHAR(255) NOT NULL, 
+    password VARCHAR(60),
+
+    PRIMARY KEY (username)
 );
 
-insert into Users (first_name, last_name, email, password) values ('Gleb', 'Sokolovski', 's2015488@ed.ac.uk', '$2a$12$lqOJOQQqbfbfz9RnZSHdquHSOiYjbMvxXOHHZo7PuosyG7/nkOuKe')
+insert into Users values ('glebby', 'Gleb Sokolovski', 's2015488@ed.ac.uk', '$2a$12$2yhgD8tqwizEVDpzI.9mBezWftbYxcEF9D46v7g1x0RrFDGHAweiS')

@@ -1,16 +1,42 @@
-// require('dotenv').config() // npm install dotenv
-// var bodyParser = require('body-parser')
-
 import express from 'express';
-// const mime = require('mime')
-// const socketIO = require('socket.io')
-// const http = require('http')
-import sequelize from './db.js';
+// import sequelize from './db.js';
 import router from './routes.js';
 
 
-// let server = http.createServer(app)
-// let io = socketIO(server)
+// DATABASE: ------------------------------------------------
+import oracledb from 'oracledb';
+
+async function runApp()
+{
+    let connection;
+    let result;
+    try {
+        connection = await oracledb.getConnection({ user: "admin", password: "semply37", connectionString: "localhost/xepdb1" });
+        console.log("Successfully connected to Oracle Database");
+
+        // Now query the rows back
+        result = await connection.execute( `select username, full_name from system.Users`, [], { resultSet: true, outFormat: oracledb.OUT_FORMAT_OBJECT });
+        const rs = result.resultSet; let row;
+        while ((row = await rs.getRow())) {
+            console.log(row.USERNAME + " " + row.FULL_NAME);
+        }
+        await rs.close();
+    } catch (err) {
+        console.error(err);
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    }
+}
+runApp();
+
+// ----------------------------------------------------------
+
 
 
 const app = express();
@@ -40,54 +66,9 @@ app.use((_, res, next) => {
 
 app.use(router);
 
-sequelize.sync(); 
+// sequelize.sync(); 
 
 // start server
-app.listen(process.env.PORT, () => {
-    console.log(`Server listening on port ${process.env.PORT}.`)
+app.listen(3000, () => {
+    console.log(`Server listening on port ${3000}.`)
 })
-
-// app.use( bodyParser.json() );       // to support JSON-encoded bodies
-// app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
-//   extended: true
-// }))
-
-
-// io.on('connection', (socket) => {
-//     console.log('New user connected')
-
-//     socket.emit('newMessage', {
-//         from:'jen@mds',
-//         text:'hepppp',
-//         createdAt:123
-//     })
-
-//     socket.on('createMessage', (newMessage)=>{
-//         console.log('newMessage', newMessage);
-//     })
-
-//     socket.on('disconnect', ()=>{
-//         console.log('disconnected from user');
-//     })
-// })
-
-// app.use(express.static(__dirname + '/public', {
-//     setHeaders: function(res, path) {
-//       if (mime.getType(path) === 'application/javascript') { // send javascript file with type javascript
-//         res.setHeader('Content-Type', 'application/javascript');
-//       }
-//     }
-// }))
-
-
-// app.get("/", (req, res) => {
-//     res.sendFile(__dirname + "/public/index.html")
-// })
-
-// app.get("/login", (req, res) => {
-//     res.sendFile(__dirname + "/public/login.html")
-// })
-
-// app.post("/login_auth", (req, res) => {
-//     res.send("Email: " + req.body.email + " Password: " + req.body.password)
-// })
