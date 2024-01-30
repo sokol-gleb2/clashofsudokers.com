@@ -2,71 +2,101 @@ import bcrypt from 'bcryptjs';
 
 import jwt from 'jsonwebtoken';
 
-import User from './user.js';
+import oracledb from 'oracledb';
+import executeQuery from './db.js';
+import uploadImage from './AWSupload.js';
 
 const signup = (req, res, next) => {
-    // checks if email already exists
-    User.findOne({ where : {
-        email: req.body.email, 
-    }})
-    .then(dbUser => {
-        if (dbUser) {
-            return res.status(409).json({message: "email already exists"});
-        } else if (req.body.email && req.body.password) {
-            // password hash
-            bcrypt.hash(req.body.password, 12, (err, passwordHash) => {
-                if (err) {
-                    return res.status(500).json({message: "couldnt hash the password"}); 
-                } else if (passwordHash) {
-                    return User.create(({
-                        email: req.body.email,
-                        password: passwordHash,
-                    }))
-                    .then(() => {
-                        res.status(200).json({message: "user created"});
-                    })
-                    .catch(err => {
-                        console.log(err);
-                        res.status(502).json({message: "error while creating the user"});
-                    });
-                };
-            });
-        } else if (!req.body.password) {
-            return res.status(400).json({message: "password not provided"});
-        } else if (!req.body.email) {
-            return res.status(400).json({message: "email not provided"});
-        };
-    })
-    .catch(err => {
-        console.log('error', err);
-    });
+
+    const username = req.body.username;
+    const email = req.body.email;
+
+    const sql_select = `SELECT email, username FROM SYSTEM.Users WHERE username = :username OR email = :email`;
+    const row_select = {username : username, email : email};
+    executeQuery("GET", sql_select, row_select)
+        .then(rows => {
+            if (rows.length != 0) {
+                rows.forEach(row => {
+                    if (row.EMAIL == email) {
+                        res.status(502).json({message: "EMAIL_EXISTS"});
+                    } else if (row.USERNAME == username) {
+                        res.status(502).json({message: "USERNAME_EXISTS"});
+                    }
+                })
+            } else {
+                // all good - can upload
+                const password = req.body.password
+                const name = req.body.name
+                bcrypt.hash(password, 12, (err, passwordHash) => {
+                    if (err) {
+                        return res.status(500).json({message: "SYSTEM_ERROR"});
+                    } else if (passwordHash) {
+                        
+                        const sql = `INSERT INTO SYSTEM.Users (USERNAME, FULL_NAME, EMAIL, PASSWORD) VALUES (:1, :2, :3, :4)`;
+                        const row = [username, name, email, passwordHash];
+                        executeQuery("POST", sql, row)
+                            .then(response => {
+                                console.log(response);
+                                if (response == 0) {
+                                    // all bad
+                                    return res.status(500).json({message: "SYSTEM_ERROR"});
+                                } else if (response == 1) {
+                                    // all good - upload to AWS
+                                    const file = req.file
+                                    uploadImage(file, username)
+                                        .then(uploadResult => {
+                                            if (uploadResult.message === "Upload successful") {
+                                                const token = jwt.sign({ username: username }, 'secret', { expiresIn: '24h' });
+                                                res.status(200).json({ message: "SIGNED_UP", "token": token });
+                                            }
+                                        })
+                                        .catch(error => {
+                                            // handle upload error
+                                            console.log(error.message);
+                                            res.status(500).send(error.message);
+                                        });
+                                }
+                            })
+                            .catch(error => {
+                                console.error(error.message);
+                                res.status(500).send(error.message);
+                            })
+                        
+                    };
+                });
+            }
+        })
+        .catch(err => {
+            // Handle errors
+            console.error("Error executing query:", err);
+        });
+    
 };
 
 const login = (req, res, next) => {
-    // checks if email exists
-    User.findOne({ where : {
-        email: req.body.email, 
-    }})
-    .then(dbUser => {
-        if (!dbUser) {
-            return res.status(404).json({message: "user not found"});
-        } else {
-            // password hash
-            bcrypt.compare(req.body.password, dbUser.password, (err, compareRes) => {
-                if (err) { // error while comparing
-                    res.status(502).json({message: "error while checking user password"});
-                } else if (compareRes) { // password match
-                    const token = jwt.sign({ email: req.body.email }, 'secret', { expiresIn: '1h' });
-                    res.status(200).json({message: "user logged in", "token": token});
-                } else { // password doesnt match
-                    res.status(401).json({message: "invalid credentials"});
-                };
-            });
-        };
-    })
-    .catch(err => {
-        console.log('error', err);
-    });
+    let username = req.body.username
+    executeQuery("GET", `SELECT * FROM SYSTEM.Users WHERE username='${username}';`)
+        .then(rows => {
+            if (rows.length != 0) {
+                // Handle the fetched rows
+                bcrypt.compare(req.body.password, rows[0].PASSWORD, (err, compareRes) => {
+                    if (err) { // error while comparing
+                        res.status(502).json({message: "AUTH_ERROR"});
+                    } else if (compareRes) { // password match
+                        const token = jwt.sign({ username: req.body.username }, 'secret', { expiresIn: '24h' });
+                        res.status(200).json({message: "user logged in", "token": token});
+                    } else { // password doesnt match
+                        res.status(401).json({message: "INVALID_CRED_ERROR"});
+                    };
+                });
+            } else {
+                res.status(401).json({message: "INVALID_CRED_ERROR"});
+            }
+        })
+        .catch(err => {
+            // Handle errors
+            console.error("Error executing query:", err);
+        });
 };
 
 const isAuth = (req, res, next) => {

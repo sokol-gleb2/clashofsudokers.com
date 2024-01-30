@@ -11,3 +11,8 @@ npm i -g npm
 
 Update package-lock.json after updates:
 npm update --save
+
+Start Oracle:
+--> cd Downloads/vagrant-projects-main/OracleDatabase/18.4.0-XE
+--> vagrant up
+--> sqlplus -l admin/semply37@localhost/xepdb1

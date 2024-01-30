@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./App/images/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -15,7 +15,10 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "NSAppTransportSecurity": {
+        "NSAllowsArbitraryLoads": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +28,19 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Please allow access to your photos."
+        },
+        
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow $(ClashOfSudokers) to access your Face ID biometric data."
+        }
+      ]
+    ]
   }
 }

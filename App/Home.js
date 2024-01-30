@@ -5,37 +5,93 @@ import { StyleSheet, Text, View, Image, TextInput, TouchableHighlight, AsyncStor
 // import SvgComponentTop from './LogInSvgTop.js';
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 import { useFonts } from 'expo-font';
+import * as SecureStore from 'expo-secure-store';
 
-const saveUserData = async (userData) => {
-    try {
-        const jsonValue = JSON.stringify(userData);
-        await AsyncStorage.setItem('USER_DATA', jsonValue);
-    } catch (error) {
-        console.error("Error saving user data", error);
-    }
-};
+// const saveUserData = async (userData) => {
+//     try {
+//         const jsonValue = JSON.stringify(userData);
+//         await AsyncStorage.setItem('USER_DATA', jsonValue);
+//     } catch (error) {
+//         console.error("Error saving user data", error);
+//     }
+// };
   
 const retrieveUserData = async () => {
+    // first get name and stuff from async storage:
+    let get_more_details = false;
     try {
-        const jsonValue = await AsyncStorage.getItem('USER_DATA');
-        return jsonValue != null ? JSON.parse(jsonValue) : null;
+        const name = await AsyncStorage.getItem('name');
+        const email = await AsyncStorage.getItem('email');
+        const username = await AsyncStorage.getItem('username');
+        if (name == null || email == null || username == null) {
+            get_more_details = true;
+        }
     } catch (error) {
-        console.error("Error retrieving user data", error);
-        return null;
+        // Error retrieving data
+        get_more_details = true;
     }
+
+    if (get_more_details) {
+
+        const token = await SecureStore.getItemAsync('secure_token');
+        fetch(`${API_URL}/getinfo`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({token : token}),
+        })
+        .then(async res => { 
+            try {
+                const jsonRes = await res.json();
+                return jsonRes;
+            } catch (err) {
+                console.log(err);
+                return null;
+            };
+        })
+        .catch(err => {
+            console.log(err);
+            return null;
+        });
+
+    } 
+    
 };
 
-
-const retrievePreviousGames = async () => {
-    const payload = {
-        username
-    };
-    fetch(`${API_URL}/${isLogin ? 'login' : 'signup'}`, {
+const retrieveUserImage = async () => {
+    const token = await SecureStore.getItemAsync('secure_token');
+    fetch(`${API_URL}/getimage`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({token : token}),
+    })
+    .then(async res => { 
+        try {
+            const jsonRes = await res.json();
+            return jsonRes;
+        } catch (err) {
+            console.log(err);
+            return null;
+        };
+    })
+    .catch(err => {
+        console.log(err);
+        return null;
+    });
+}
+
+
+const retrievePreviousGames = async () => {
+    const token = await SecureStore.getItemAsync('secure_token');
+    fetch(`${API_URL}/getgames`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({token : token}),
     })
     .then(async res => { 
         try {
@@ -54,7 +110,7 @@ const retrievePreviousGames = async () => {
 
 
 
-export default function Home() {
+const Home = ({navigation}) => {
 
     const [userData, setUserData] = useState(null);
 
@@ -67,15 +123,29 @@ export default function Home() {
         };
 
         fetchData();
-    }, []);
 
-    const getUserDetails = () => {
-        useEffect(() => {
-            const previousGames = async () => {
-                const data = await 
+        const previousGames = async () => {
+            const data = await retrievePreviousGames();
+            if (data) {
+
+            } else {
+                // no more games
             }
-        })
-    };
+        }
+
+        previousGames()
+
+        const userImage = async () => {
+            const data = await retrieveUserImage();
+            if (data) {
+
+            } else {
+                // no more games
+            }
+        }
+
+        userImage()
+    }, []);
 
 
     const [fontsLoaded] = useFonts({
@@ -86,7 +156,7 @@ export default function Home() {
 
     const onLayoutRootView = useCallback(async () => {
         if (fontsLoaded) {
-        await SplashScreen.hideAsync();
+            await SplashScreen.hideAsync();
         }
     }, [fontsLoaded]);
 
@@ -346,3 +416,4 @@ const styles = StyleSheet.create({
 });
 
 
+export default Home;
