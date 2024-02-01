@@ -1,17 +1,18 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react'; 
 import { StyleSheet, Text, View, Image, TextInput, TouchableHighlight, ActivityIndicator } from 'react-native';
-// import SvgComponentBottom from './LogInSvgBottom.js';
-// import SvgComponentTop from './LogInSvgTop.js';
+import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 import { useFonts } from 'expo-font';
 import { BlurView } from 'expo-blur';
 
 
 // const API_URL = Platform.OS === 'ios' ? 'http://localhost:3001' : 'http://10.0.2.2:3001';
+// const API_URL = 'http://10.126.172.181:3001';
+const API_URL = 'http://192.168.0.47:3001';
 
 const LogInScreen = ({navigation}) => {
-    const API_URL = 'http://192.168.68.119:3001';
+    // const API_URL = 'http://192.168.68.119:3001';
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState(''); 
@@ -21,6 +22,10 @@ const LogInScreen = ({navigation}) => {
     const [usernameInputError, setUsernameInputError] = useState(false);
     const [passwordInputError, setPasswordInputError] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+
+    const onSignUpPressed = () => {
+      navigation.navigate("SignUp");
+    }
 
     const onChangeHandler = () => {
         setIsLogin(!isLogin);
@@ -90,7 +95,13 @@ const LogInScreen = ({navigation}) => {
                         setMessage("Wrong username or password :(");
                     }
                 } else {
-                    navigation.navigate('Home')
+                    SecureStore.setItemAsync('secure_token', jsonRes.token)
+                        .then(() => {
+                            navigation.navigate('Home'); // Navigate after the token is successfully saved
+                        })
+                        .catch((error) => {
+                            console.log(error.message); // Handle any errors in saving the token
+                        });
                 }
             } catch (err) {
                 console.log(err);
@@ -142,7 +153,6 @@ const LogInScreen = ({navigation}) => {
                     style={[styles.usernameInput, usernameInputError && styles.error]}
                     placeholder="Username"
                     onChangeText={setUsername}
-                    keyboardType="text"
                 />
                 <View style={[styles.passwordContainer, passwordInputError && styles.error]}> 
                     <TextInput 
@@ -153,7 +163,6 @@ const LogInScreen = ({navigation}) => {
                         onChangeText={setPassword} 
                         style={styles.passwordInput}
                         placeholder="Password"
-                        keyboardType="text"
                     /> 
                     <MaterialCommunityIcons 
                         name={showPassword ? 'eye-off' : 'eye'} 
@@ -201,7 +210,7 @@ const LogInScreen = ({navigation}) => {
             <Text style={[styles.loggedInMessage, {color: 'red'}]}>{message ? getMessage() : null}</Text>
 
             <View style={styles.signUpWriting}>
-                <Text style={[{fontSize: 17}]}>Don't have an account? <Text style={[{textDecorationLine: 'underline', color: '#673AB7'}]}>Sign Up</Text></Text>
+                <Text style={[{fontSize: 17}]}>Don't have an account?</Text><TouchableHighlight onPress={onSignUpPressed}><Text style={[{textDecorationLine: 'underline', color: '#673AB7'}]}>Sign Up</Text></TouchableHighlight>
             </View>
             
             <StatusBar style="auto" />

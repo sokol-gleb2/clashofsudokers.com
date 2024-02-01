@@ -15,16 +15,14 @@ export default async function executeQuery(type, query, row_to_pass) {
 
         if (type == "GET") {
             let rows = [];
-
-            const result = await connection.execute(query, row_to_pass, { resultSet: true });
+            const result = await connection.execute(query, row_to_pass, { resultSet: true, outFormat: oracledb.OUT_FORMAT_OBJECT });
             const rs = result.resultSet; 
             let row;
 
             while ((row = await rs.getRow())) {
+                console.log(row);
                 rows.push(row); // Add each row to the rows array
             }
-
-            console.log(rows);
 
             await rs.close();
             return rows; // Return the collected rows

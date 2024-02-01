@@ -74,8 +74,10 @@ const signup = (req, res, next) => {
 };
 
 const login = (req, res, next) => {
-    let username = req.body.username
-    executeQuery("GET", `SELECT * FROM SYSTEM.Users WHERE username='${username}';`)
+    const username = req.body.username
+    const sql = "SELECT * FROM SYSTEM.Users WHERE username = :username";
+    const row_select = {username : username};
+    executeQuery("GET", sql, row_select)
         .then(rows => {
             if (rows.length != 0) {
                 // Handle the fetched rows

@@ -1,11 +1,16 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback, useEffect } from 'react'; 
-import { StyleSheet, Text, View, Image, TextInput, TouchableHighlight, AsyncStorage } from 'react-native';
+import { Animated, StyleSheet, Text, View, Image, TextInput, TouchableHighlight, Dimensions, TouchableWithoutFeedback } from 'react-native';
 // import SvgComponentBottom from './LogInSvgBottom.js';
 // import SvgComponentTop from './LogInSvgTop.js';
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+const API_URL = 'http://192.168.0.47:3001';
+// const API_URL = 'http://10.126.172.181:3001';
 
 // const saveUserData = async (userData) => {
 //     try {
@@ -23,146 +28,200 @@ const retrieveUserData = async () => {
         const name = await AsyncStorage.getItem('name');
         const email = await AsyncStorage.getItem('email');
         const username = await AsyncStorage.getItem('username');
-        if (name == null || email == null || username == null) {
+        const rank = await AsyncStorage.getItem('rank');
+        const wins = await AsyncStorage.getItem('wins');
+        const losses = await AsyncStorage.getItem('losses');
+        const draws = await AsyncStorage.getItem('draws');
+        if (name == null || email == null || username == null || rank == null || wins == null || losses == null || draws == null) {
             get_more_details = true;
+        } else {
+            return {name: name, email: email, username: username, rank: rank, wins: wins, losses: losses, draws: draws}
         }
     } catch (error) {
         // Error retrieving data
         get_more_details = true;
+        console.error(error.message);
     }
 
     if (get_more_details) {
 
+        try {
+
+            const token = await SecureStore.getItemAsync('secure_token');
+            return fetch(`${API_URL}/getinfo`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({token : token}),
+            })
+            .then(res => res.json())
+            .then(jsonRes => {
+                return jsonRes;
+            })
+            .catch(err => {
+                console.log(err);
+                return null;
+            });
+        } catch (error) {
+            console.log(error.message);
+        }
+
+    }
+    
+};
+
+const retrieveUserImage = async () => {
+    try {
         const token = await SecureStore.getItemAsync('secure_token');
-        fetch(`${API_URL}/getinfo`, {
+        return fetch(`${API_URL}/getimage`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({token : token}),
         })
-        .then(async res => { 
-            try {
-                const jsonRes = await res.json();
-                return jsonRes;
-            } catch (err) {
-                console.log(err);
-                return null;
-            };
+        .then(res => res.json())
+        .then(jsonRes => {
+            return jsonRes;
+        })
+        .catch(err => {
+            console.log(err);
+            return null;
+        });
+    } catch (error) {
+        console.log(error.message);
+    }
+}
+
+
+const retrievePreviousGames = async () => {
+    try {
+        const token = await SecureStore.getItemAsync('secure_token');
+        return fetch(`${API_URL}/getgames`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({token : token}),
+        })
+        .then(res => res.json())
+        .then(jsonRes => {
+            return jsonRes;
         })
         .catch(err => {
             console.log(err);
             return null;
         });
 
-    } 
-    
-};
-
-const retrieveUserImage = async () => {
-    const token = await SecureStore.getItemAsync('secure_token');
-    fetch(`${API_URL}/getimage`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({token : token}),
-    })
-    .then(async res => { 
-        try {
-            const jsonRes = await res.json();
-            return jsonRes;
-        } catch (err) {
-            console.log(err);
-            return null;
-        };
-    })
-    .catch(err => {
-        console.log(err);
-        return null;
-    });
-}
-
-
-const retrievePreviousGames = async () => {
-    const token = await SecureStore.getItemAsync('secure_token');
-    fetch(`${API_URL}/getgames`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({token : token}),
-    })
-    .then(async res => { 
-        try {
-            const jsonRes = await res.json();
-            return jsonRes;
-        } catch (err) {
-            console.log(err);
-            return null;
-        };
-    })
-    .catch(err => {
-        console.log(err);
-        return null;
-    });
+    } catch (error) {
+        console.log(error.message);
+    }
 }
 
 
 
 const Home = ({navigation}) => {
 
-    const [userData, setUserData] = useState(null);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            const data = await retrieveUserData();
-            if (data) {
-                setUserData(data);
-            }
-        };
-
-        fetchData();
-
-        const previousGames = async () => {
-            const data = await retrievePreviousGames();
-            if (data) {
-
-            } else {
-                // no more games
-            }
-        }
-
-        previousGames()
-
-        const userImage = async () => {
-            const data = await retrieveUserImage();
-            if (data) {
-
-            } else {
-                // no more games
-            }
-        }
-
-        userImage()
-    }, []);
-
+    const [userData, setUserData] = useState({});
+    const [dataLoaded, setDataLoaded] = useState(false); // New state for tracking data loading
+    const [games, setGames] = useState([]);
+    const [imageUrl, setImageUrl] = useState('');
+    const [noGamesYetBanner, setNoGamesYetBanner] = useState(true);
+    const [moreGames, setMoreGames] = useState(false);
+    const [errorFetching, setErrorFetching] = useState(false);
+    const screenWidth = Dimensions.get('window').width;
+    const initialPosition = -0.6 * screenWidth; // -60% of screen width
+    const [menuAnimation] = useState(new Animated.Value(initialPosition));
+    
 
     const [fontsLoaded] = useFonts({
         'Nunito-ExtraBold': require('../assets/fonts/Nunito-ExtraBold.ttf'),
         'Nunito-Regular': require('../assets/fonts/Nunito-Regular.ttf'),
         'Nunito-Bold': require('../assets/fonts/Nunito-Bold.ttf'),
     });
+    
+    useEffect(() => {
+        const fetchData = async () => {
+            const token = await SecureStore.getItemAsync('secure_token');
+            if (token == null) {
+                console.log("oh no");
+                navigation.navigate('LogIn')
+            } else {
+                console.log("all good");
 
+                try {
+                    const userDataFetched = await retrieveUserData();
+                    console.log("UserData");
+                    console.log(userDataFetched);
+                    if (userDataFetched) {
+                        setUserData(userDataFetched);
+                    } else {
+                        setErrorFetching(true);
+                    }
+                } catch (error) {
+                    console.log("UserDataError: " + error.message);
+                }
+        
+                try {
+    
+                    const previousGamesData = await retrievePreviousGames();
+                    console.log("PreviousGames");
+                    console.log(previousGamesData);
+                    if (previousGamesData) {
+                        setGames(previousGamesData);
+                        if (games.length > 0) {
+                            setNoGamesYetBanner(false);
+                        } else if (games.length > 5) {
+                            setMoreGames(true);
+                        }
+                        console.log(noGamesYetBanner);
+                    } else {
+                        setErrorFetching(true);
+                    }
+                } catch (error) {
+                    console.log("GamesError: " + error.message);
+                }
+        
+                try {
+                    const userImageData = await retrieveUserImage();
+                    console.log("Image");
+                    console.log(userImageData);
+                    if (userImageData) {
+                        setImageUrl(userImageData.url);
+                    } else {
+                        setErrorFetching(true);
+                    }
+                } catch (error) {
+                    console.log("ImageError: " + error.message);
+                }
+                // Handle userImageData here
+        
+                // Once all data is fetched, update dataLoaded state
+                if (errorFetching) {
+                    alert("We couldn't fetch your details. Please try logging in again!");
+                    navigation.navigate('LogIn');
+                } else {
+                    setDataLoaded(true);
+                }
+
+            }
+            
+        };
+    
+        fetchData();
+    }, []);
+    
     const onLayoutRootView = useCallback(async () => {
-        if (fontsLoaded) {
+        if (fontsLoaded && dataLoaded) {
             await SplashScreen.hideAsync();
         }
-    }, [fontsLoaded]);
-
-    if (!fontsLoaded) {
+    }, [fontsLoaded, dataLoaded]);
+    
+    if (!fontsLoaded || !dataLoaded) {
         return null;
     }
+    
 
     const onViewAllGamesHandler = () => {
 
@@ -172,54 +231,123 @@ const Home = ({navigation}) => {
 
     }
 
+    const onMenuPressed = () => {
+        Animated.timing(menuAnimation, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: false
+        }).start();
+    }
+
+    const menuSlideOut = () => {
+        Animated.timing(menuAnimation, {
+            toValue: initialPosition,
+            duration: 300,
+            useNativeDriver: false
+        }).start();
+    }
+
+    const onProfileClicked = () => {
+
+    }
+
+    const onSettingsClicked = () => {
+
+    }
+
+    const onLogOutClicked = () => {
+
+    }
+
     return (
-        <View style={styles.container}>
-            
-            <View style={styles.bigCircle}></View>
-            <View style={styles.smallCircle}></View>
-            <Image style={styles.logo} source={require('./images/logo.png')} />
+        <TouchableWithoutFeedback onPress={menuSlideOut}>
+            <View style={styles.container}>
+                
+                <View style={styles.bigCircle}></View>
+                <View style={styles.smallCircle}></View>
+                <Image style={styles.logo} source={require('./images/logo.png')} />
 
-            <View style={styles.userDetailsBox}>
-                <Image style={styles.profile_image} source={ {uri: userData.backgroundImageUrl} } />
-                <View style={styles.userDetailsContainer}>
-                    <Text style={styles.userName}>{userData.name}</Text>
-                    <Text style={styles.userRank}>Ranking: {userData.sudokuRank}</Text>
-                    <Text style={styles.userRank}>W-L-D: <Text style={[{color: '#4CAF50'}]}>{userData.wins}</Text>-<Text style={[{color: '#F00'}]}>{userData.losses}</Text>-<Text style={[{color: '#00F'}]}>{userData.draws}</Text> </Text>
-                </View>
-            </View>
-
-            <View style={styles.userHistoryBox}>
-                <Text style={styles.boxHeading}>Previous 5 Games</Text>
-                <View style={styles.game}>
-                    <Text style={styles.win}>W</Text>
-                    <Text style={styles.player}>Julia Metryka (2111)</Text>
-                    <Text style={styles.winScore}>+31</Text>
-                </View>
-                <View style={styles.game}>
-                    <Text style={styles.loss}>L</Text>
-                    <Text style={styles.player}>Julia Metryka (2111)</Text>
-                    <Text style={styles.lossScore}>-31</Text>
-                </View>
-                <View style={styles.game}>
-                    <Text style={styles.draw}>D</Text>
-                    <Text style={styles.player}>Julia Metryka (2111)</Text>
-                    <Text style={styles.drawScore}>+5</Text>
-                </View>
-                <TouchableHighlight style={styles.viewAllButton} onPress={onViewAllGamesHandler}>
-                    <Text style={styles.viewAllButtonText}>View All</Text>
+                <TouchableHighlight onPress={onMenuPressed} style={styles.menu}>
+                    <MaterialCommunityIcons name={'menu'} color={'#673AB7'} size={30} style={[{flex: 1}]} />
                 </TouchableHighlight>
-            </View>
 
+                <Animated.View style={[styles.menuBanner, {left: menuAnimation}]}>
+                    <TouchableHighlight onPress={onProfileClicked} style={[{width: '100%'}]}>
+                        <View style={styles.menuOption}>
+                            {imageUrl ? <Image style={styles.menuIcon} source={ {uri: imageUrl} } /> : null}
+                            <Text style={styles.menuText}>Profile</Text>
+                        </View>
+                    </TouchableHighlight>
+                    <TouchableHighlight onPress={onSettingsClicked} style={[{width: '100%', marginTop: 70}]}>
+                        <View style={styles.menuOption}>
+                            <MaterialCommunityIcons style={[styles.menuIcon, {marginTop: 12.5, marginLeft: 7.5}]} name={'cog'} color={'white'} size={45} />
+                            <Text style={[styles.menuText, {marginLeft: -7.5}]}>Settings</Text>
+                        </View>
+                    </TouchableHighlight>
+                    <TouchableHighlight onPress={onLogOutClicked} style={[{width: '100%', marginTop: 5}]}>
+                        <View style={styles.menuOption}>
+                            <MaterialCommunityIcons style={[styles.menuIcon, {marginTop: 12.5, marginLeft: 7.5}]} name={'logout'} color={'red'} size={45} />
+                            <Text style={[styles.menuText, {color: 'red', fontFamily: 'Nunito-Bold', marginLeft: -7.5}]}>Log Out</Text>
+                        </View>
+                    </TouchableHighlight>
+                </Animated.View>
 
-            <TouchableHighlight style={styles.newGameButton} onPress={onNewGameHandler}>
-                <View style={styles.newGameButtonView}>
-                    <MaterialCommunityIcons name={'rocket'} color={'#673AB7'} size={30} style={[{flex: 1}]} />
-                    <Text style={styles.newGameButtonText}>NEW GAME</Text>
+                <View style={styles.userDetailsBox}>
+                    {imageUrl ? <Image style={styles.profile_image} source={ {uri: imageUrl} } /> : null}
+                    <View style={styles.userDetailsContainer}>
+                        <Text style={styles.userName}>{userData.name}</Text>
+                        <Text style={styles.userRank}>Ranking: {userData.rank}</Text>
+                        <Text style={styles.userRank}>W-L-D: <Text style={[{color: '#4CAF50'}]}>{userData.wins}</Text>-<Text style={[{color: '#F00'}]}>{userData.losses}</Text>-<Text style={[{color: '#00F'}]}>{userData.draws}</Text> </Text>
+                    </View>
                 </View>
-            </TouchableHighlight>
-        
-            <StatusBar style="auto" />
-        </View>
+
+                <View style={styles.userHistoryBox}>
+                    <Text style={styles.boxHeading}>Previous 5 Games</Text>
+                    {games.map((game, index) => (
+                        <View key={index} style={styles.game}>
+                            <Text style={[styles.result, game.result === 'W' ? styles.W : game.result === 'L' ? styles.L : styles.D]}>{game.result}</Text>
+                            <Text style={styles.player}>@{game.opponent.username} ({game.opponent.rank})</Text>
+                            <Text style={[styles.score, game.result === 'W' ? styles.W : game.result === 'L' ? styles.L : styles.D]}>{game.rank_diff}</Text>
+                        </View>
+                    ))}
+                    {noGamesYetBanner ? 
+                        <View style={styles.game}>
+                            <Text style={styles.noGamesYet}>No Games Yet</Text>
+                        </View> 
+                    : null}
+                    {/* <View style={styles.game}>
+                        <Text style={styles.win}>W</Text>
+                        <Text style={styles.player}>Julia Metryka (2111)</Text>
+                        <Text style={styles.winScore}>+31</Text>
+                    </View>
+                    <View style={styles.game}>
+                        <Text style={styles.loss}>L</Text>
+                        <Text style={styles.player}>Julia Metryka (2111)</Text>
+                        <Text style={styles.lossScore}>-31</Text>
+                    </View>
+                    <View style={styles.game}>
+                        <Text style={styles.draw}>D</Text>
+                        <Text style={styles.player}>Julia Metryka (2111)</Text>
+                        <Text style={styles.drawScore}>+5</Text>
+                    </View> */}
+                    {moreGames ? 
+                        <TouchableHighlight style={styles.viewAllButton} onPress={onViewAllGamesHandler}>
+                            <Text style={styles.viewAllButtonText}>View All</Text>
+                        </TouchableHighlight>
+                    : null}
+                </View>
+
+
+                <TouchableHighlight style={styles.newGameButton} onPress={onNewGameHandler}>
+                    <View style={styles.newGameButtonView}>
+                        <MaterialCommunityIcons name={'rocket'} color={'#673AB7'} size={30} style={[{flex: 1}]} />
+                        <Text style={styles.newGameButtonText}>NEW GAME</Text>
+                    </View>
+                </TouchableHighlight>
+            
+                <StatusBar style="auto" />
+            </View>
+        </TouchableWithoutFeedback>
     );
 }
 
@@ -260,8 +388,8 @@ const styles = StyleSheet.create({
     height: 83.87,
     resizeMode: 'cover',
     position: 'absolute',
-    right: 10,
-    top: 40
+    right: '5%',
+    top: 50
   },
   userDetailsBox: {
     width: '90%',
@@ -330,19 +458,21 @@ const styles = StyleSheet.create({
     marginTop: 3,
     marginBottom: 3
   },
-  win: {
-    color: '#4CAF50',
+  result: {
     fontFamily: 'Nunito-Bold',
     fontSize: 18,
     textAlign: 'center'
   },
-  loss: {
+  W: {
+    color: '#4CAF50',
+  },
+  L: {
     color: '#F00',
     fontFamily: 'Nunito-Bold',
     fontSize: 18,
     textAlign: 'center'
   },
-  draw: {
+  D: {
     color: '#00F',
     fontFamily: 'Nunito-Bold',
     fontSize: 18,
@@ -355,20 +485,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'left'
   },
-  winScore: {
-    color: '#4CAF50',
-    fontFamily: 'Nunito-Regular',
-    fontSize: 18,
-    textAlign: 'right'
-  },
-  lossScore: {
-    color: '#F00',
-    fontFamily: 'Nunito-Regular',
-    fontSize: 18,
-    textAlign: 'right'
-  },
-  drawScore: {
-    color: '#00F',
+  score: {
     fontFamily: 'Nunito-Regular',
     fontSize: 18,
     textAlign: 'right'
@@ -412,6 +529,58 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     fontSize: 20,
     color: '#673AB7'
+  },
+  noGamesYet: {
+    width: '100%',
+    textAlign: 'center',
+    fontFamily: 'Nunito-Bold',
+    fontSize: 18,
+    color: '#673AB7'
+  },
+  menu: {
+    borderRadius: '50%',
+    position: 'absolute',
+    top: 50,
+    left: '5%',
+  },
+  menuBanner: {
+    width: '60%',
+    position: 'absolute',
+    top: 35,
+    height: 300,
+    backgroundColor: 'rgba(103, 58, 183, 0.9)',
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: 10,
+    zIndex: 99,
+    paddingTop: 15
+  },
+  menuOption: {
+    width: '100%',
+    padding: 5,
+    paddingTop: 0,
+    paddingBottom: 0,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    position: 'relative',
+  },
+  menuIcon: {
+    maxWidth: 60,
+    width: 60,
+    height: 60,
+    minHeight: 60,
+    borderRadius: 30,
+    marginRight: 10,
+    flex: 1,
+  },
+  menuText: {
+    flex: 3,
+    color: 'white',
+    textAlign: 'left',
+    fontFamily: 'Nunito-Regular',
+    fontSize: 22,
   }
 });
 

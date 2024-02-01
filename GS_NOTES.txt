@@ -16,3 +16,11 @@ Start Oracle:
 --> cd Downloads/vagrant-projects-main/OracleDatabase/18.4.0-XE
 --> vagrant up
 --> sqlplus -l admin/semply37@localhost/xepdb1
+
+Error:
+==> default: Machine already provisioned. Run `vagrant provision` or use the `--provision`
+==> default: flag to force provisioning. Provisioners marked to run always will still run.
+
+--> vagrant destroy
+--> vagrant up
+This destroys everything on there.

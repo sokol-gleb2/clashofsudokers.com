@@ -1,18 +1,19 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState, useCallback } from 'react'; 
-import { StyleSheet, Text, View, Image, TextInput, TouchableHighlight, ActivityIndicator, Button, AsyncStorage } from 'react-native';
+import { StyleSheet, Text, View, Image, TextInput, TouchableHighlight, ActivityIndicator, Button } from 'react-native';
 import { useFonts } from 'expo-font';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // https://docs.amplify.aws/react-native/start/getting-started/installation/
 // https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally
 // https://github.com/expo/examples/tree/master/with-aws-storage-upload
 // https://docs.expo.dev/versions/latest/sdk/imagepicker/
-// const API_URL = 'http://192.168.0.47:3001';
-const API_URL = 'http://10.126.172.181:3001';
+const API_URL = 'http://192.168.0.47:3001';
+// const API_URL = 'http://10.126.172.181:3001';
 
 const SignUpScreen = ({navigation}) => {
 
@@ -32,6 +33,10 @@ const SignUpScreen = ({navigation}) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [image, setImage] = useState(null);
     const [blob, setBlob] = useState(null);
+
+    const onLogInPressed = () => {
+        navigation.navigate("LogIn");
+    }
 
     const pickImage = async () => {
         // No permissions request is necessary for launching the image library
@@ -134,6 +139,7 @@ const SignUpScreen = ({navigation}) => {
                 setIsProcessing(false);
                 try {
                     const jsonRes = await res.json();
+                    console.log(jsonRes);
                     if (res.status !== 200) {
                         setIsError(true);
                         if (jsonRes.message == "USERNAME_EXISTS") {
@@ -144,16 +150,18 @@ const SignUpScreen = ({navigation}) => {
                             setEmailInputError(true)
                         }
                     } else {
-                        await SecureStore.setItemAsync('secure_token',jsonRes.token);
+                        console.log("yep");
                         // const token = await SecureStore.getItemAsync('secure_token');
                         // console.log(token); // output: sahdkfjaskdflas$%^&
                         try {
+                            await SecureStore.setItemAsync('secure_token',jsonRes.token);
                             await AsyncStorage.setItem('username',username);
                             await AsyncStorage.setItem('name',name);
                             await AsyncStorage.setItem('email',email);
                             navigation.navigate('Home')
                         } catch (error) {
                             // alert("Sign Up failed. Please try again!");
+                            console.log(error.message);
                         }
                     }
                 } catch (err) {
@@ -161,6 +169,8 @@ const SignUpScreen = ({navigation}) => {
                 };
             })
             .catch(err => {
+                setIsProcessing(false);
+                alert("Something went wrong. Please try again!");
                 console.log(err);
             });
         }
@@ -307,7 +317,8 @@ const SignUpScreen = ({navigation}) => {
             <Text style={[styles.loggedInMessage, {color: 'red'}]}>{message ? getMessage() : null}</Text>
 
             <View style={styles.signUpWriting}>
-                <Text style={[{fontSize: 17}]}>Already have an account? <Text style={[{textDecorationLine: 'underline', color: '#673AB7'}]}>Log In</Text></Text>
+                <Text style={[{fontSize: 17}]}>Already have an account?</Text>
+                <TouchableHighlight onPress={onLogInPressed} style={[{display: 'flex', alignItems: 'center', marginLeft: 5}]}><Text style={[{textDecorationLine: 'underline', color: '#673AB7', fontSize: 17}]}>Log In</Text></TouchableHighlight>
             </View>
             
             <StatusBar style="auto" />
@@ -454,7 +465,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         position: 'absolute',
-        bottom: 50
+        bottom: 60
     },
     appleViewHightlight: {
         width: 110,
@@ -479,7 +490,7 @@ const styles = StyleSheet.create({
     orWriting: {
         width: '100%',
         position: 'absolute',
-        bottom: 90,
+        bottom: 100,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
