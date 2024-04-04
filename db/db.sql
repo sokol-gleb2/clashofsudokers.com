@@ -13,22 +13,22 @@ CREATE TABLE Users (
     PRIMARY KEY (username)
 );
 
-CREATE TABLE Games (
-    game_id VARCHAR(37) NOT NULL,
+CREATE TABLE Clashes (
+    clash_id VARCHAR(57) NOT NULL,
     start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     duration NUMBER DEFAULT NULL,
     winner_username VARCHAR(20) DEFAULT NULL,
-    PRIMARY KEY (game_id),
+    PRIMARY KEY (clash_id),
     FOREIGN KEY (winner_username) REFERENCES Users (username)
 );
 
-CREATE TABLE UserGames (
-    game_id VARCHAR(37) NOT NULL,
+CREATE TABLE UserClashes (
+    clash_id VARCHAR(57) NOT NULL,
     username VARCHAR(20) NOT NULL,
     start_rank NUMBER NOT NULL,
     end_rank NUMBER DEFAULT NULL,
-    PRIMARY KEY (game_id, username),
-    FOREIGN KEY (game_id) REFERENCES Games (game_id),
+    PRIMARY KEY (clash_id, username),
+    FOREIGN KEY (clash_id) REFERENCES Clashes (clash_id),
     FOREIGN KEY (username) REFERENCES Users (username)
 );
 

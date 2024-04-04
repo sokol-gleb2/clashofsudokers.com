@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Testing Results</title>
+
+    <style>
+        .results {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            overflow-y: scroll;
+        }
+
+        .result {
+            width: 100%;
+            text-align: left;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="results"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./loadTesting.js"></script>
+</body>
+</html>

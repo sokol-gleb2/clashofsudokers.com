@@ -3,14 +3,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { Animated, StyleSheet, Text, View, Image, TextInput, TouchableHighlight, Dimensions, TouchableWithoutFeedback } from 'react-native';
 // import SvgComponentBottom from './LogInSvgBottom.js';
 // import SvgComponentTop from './LogInSvgTop.js';
-import { MaterialCommunityIcons } from '@expo/vector-icons'; 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-
-const API_URL = 'http://192.168.0.47:3001';
-// const API_URL = 'http://10.126.172.181:3001';
+import { API_URL } from './config';
 
 // const saveUserData = async (userData) => {
 //     try {
@@ -35,7 +32,7 @@ const retrieveUserData = async () => {
         if (name == null || email == null || username == null || rank == null || wins == null || losses == null || draws == null) {
             get_more_details = true;
         } else {
-            return {name: name, email: email, username: username, rank: rank, wins: wins, losses: losses, draws: draws}
+            return [{name: name, email: email, username: username, rank: rank, wins: wins, losses: losses, draws: draws}, false];
         }
     } catch (error) {
         // Error retrieving data
@@ -57,7 +54,7 @@ const retrieveUserData = async () => {
             })
             .then(res => res.json())
             .then(jsonRes => {
-                return jsonRes;
+                return [jsonRes, true];
             })
             .catch(err => {
                 console.log(err);
@@ -72,25 +69,49 @@ const retrieveUserData = async () => {
 };
 
 const retrieveUserImage = async () => {
-    try {
-        const token = await SecureStore.getItemAsync('secure_token');
-        return fetch(`${API_URL}/getimage`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({token : token}),
-        })
-        .then(res => res.json())
-        .then(jsonRes => {
-            return jsonRes;
-        })
-        .catch(err => {
-            console.log(err);
-            return null;
-        });
-    } catch (error) {
-        console.log(error.message);
+    let get_more_details = true;
+    // try {
+    //     const imageUrl = await AsyncStorage.getItem('imageUrl');
+    //     const imageTTL = await AsyncStorage.getItem('imageTTL');
+    //     const imageTTLDate = new Date(imageTTL); // Directly create a Date object from the ISO string
+    //     const now = new Date();
+    //     console.log(imageUrl);
+    //     console.log(imageTTL);
+    //     console.log(now);
+    //     if (imageUrl == null || now < imageTTLDate) {
+    //         get_more_details = true;
+    //     } else {
+    //         return {url: imageUrl, save: false};
+    //     }
+    // } catch (error) {
+    //     // Error retrieving data
+    //     get_more_details = true;
+    //     console.error(error.message);
+    // }
+
+    if (get_more_details) {
+
+        try {
+            const token = await SecureStore.getItemAsync('secure_token');
+            return fetch(`${API_URL}/getimage`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({token : token}),
+            })
+            .then(res => res.json())
+            .then(jsonRes => {
+                return {url: jsonRes.url, save: true};
+            })
+            .catch(err => {
+                console.log(err);
+                return null;
+            });
+        } catch (error) {
+            console.log(error.message);
+        }
+
     }
 }
 
@@ -126,10 +147,9 @@ const Home = ({navigation}) => {
     const [userData, setUserData] = useState({});
     const [dataLoaded, setDataLoaded] = useState(false); // New state for tracking data loading
     const [games, setGames] = useState([]);
-    const [imageUrl, setImageUrl] = useState('');
+    const [imageUrl, setImageUrl] = useState(null);
     const [noGamesYetBanner, setNoGamesYetBanner] = useState(true);
     const [moreGames, setMoreGames] = useState(false);
-    const [errorFetching, setErrorFetching] = useState(false);
     const screenWidth = Dimensions.get('window').width;
     const initialPosition = -0.6 * screenWidth; // -60% of screen width
     const [menuAnimation] = useState(new Animated.Value(initialPosition));
@@ -152,12 +172,33 @@ const Home = ({navigation}) => {
 
                 try {
                     const userDataFetched = await retrieveUserData();
-                    console.log("UserData");
-                    console.log(userDataFetched);
-                    if (userDataFetched) {
-                        setUserData(userDataFetched);
+                    if (userDataFetched != null) {
+                        let userDataF = userDataFetched[0];
+                        setUserData(userDataF);
+                        if (userDataFetched[1] == true) {
+                            console.log("saving");
+                            // save it to async storage:
+                            try {
+                                console.log(userDataF);
+                                await AsyncStorage.setItem('name', userDataF.name);
+                                await AsyncStorage.setItem('username', userDataF.username);
+                                await AsyncStorage.setItem('email', userDataF.email);
+                                await AsyncStorage.setItem('rank', userDataF.rank.toString());
+                                await AsyncStorage.setItem('wins', userDataF.wins.toString());
+                                await AsyncStorage.setItem('losses', userDataF.losses.toString());
+                                await AsyncStorage.setItem('draws', userDataF.draws.toString());
+                            } catch (error) {
+                                // Error retrieving data
+                                console.log(error);
+                                alert("We couldn't fetch your details. Please try logging in again!");
+                                navigation.navigate('LogIn');
+                                return null;
+                            }
+                        }
                     } else {
-                        setErrorFetching(true);
+                        alert("We couldn't fetch your details. Please try logging in again!");
+                        navigation.navigate('LogIn');
+                        return null;
                     }
                 } catch (error) {
                     console.log("UserDataError: " + error.message);
@@ -168,7 +209,7 @@ const Home = ({navigation}) => {
                     const previousGamesData = await retrievePreviousGames();
                     console.log("PreviousGames");
                     console.log(previousGamesData);
-                    if (previousGamesData) {
+                    if (previousGamesData != null) {
                         setGames(previousGamesData);
                         if (games.length > 0) {
                             setNoGamesYetBanner(false);
@@ -177,7 +218,9 @@ const Home = ({navigation}) => {
                         }
                         console.log(noGamesYetBanner);
                     } else {
-                        setErrorFetching(true);
+                        alert("We couldn't fetch your details. Please try logging in again!");
+                        navigation.navigate('LogIn');
+                        return null;
                     }
                 } catch (error) {
                     console.log("GamesError: " + error.message);
@@ -185,25 +228,41 @@ const Home = ({navigation}) => {
         
                 try {
                     const userImageData = await retrieveUserImage();
-                    console.log("Image");
-                    console.log(userImageData);
-                    if (userImageData) {
+                    if (userImageData  != null) {
+                        console.log(userImageData);
                         setImageUrl(userImageData.url);
+                        // set image uri to async storage
+                        // set TTL = 23h 50min (it's 24h when fetching <= making sure there is no error)
+                        if (userImageData.save) {
+                            const now = new Date();
+                            const imageTTL =  new Date(now.getTime() + 23 * 60 * 60 * 1000 + 50 * 60 * 1000); // Adds 23h 50 min hours
+                            try {
+                                await AsyncStorage.setItem('imageUrl', userImageData.url);
+                                await AsyncStorage.setItem('imageTTL', imageTTL.toISOString()); // Directly use ISO string
+                            } catch (error) {
+                                console.log(error.message);
+                            }
+                        }
                     } else {
-                        setErrorFetching(true);
+                        alert("We couldn't fetch your details. Please try logging in again!");
+                        navigation.navigate('LogIn');
+                        return null;
                     }
                 } catch (error) {
                     console.log("ImageError: " + error.message);
                 }
+
+
+                setDataLoaded(true);
                 // Handle userImageData here
         
                 // Once all data is fetched, update dataLoaded state
-                if (errorFetching) {
-                    alert("We couldn't fetch your details. Please try logging in again!");
-                    navigation.navigate('LogIn');
-                } else {
-                    setDataLoaded(true);
-                }
+                // if (errorFetching) {
+                //     alert("We couldn't fetch your details. Please try logging in again!");
+                //     navigation.navigate('LogIn');
+                // } else {
+                //     setDataLoaded(true);
+                // }
 
             }
             
@@ -228,7 +287,7 @@ const Home = ({navigation}) => {
     }
 
     const onNewGameHandler = () => {
-
+        navigation.navigate("LookingForOpponent")
     }
 
     const onMenuPressed = () => {
@@ -252,11 +311,26 @@ const Home = ({navigation}) => {
     }
 
     const onSettingsClicked = () => {
-
+        navigation.navigate("Settings");
     }
 
-    const onLogOutClicked = () => {
-
+    const onLogOutClicked = async () => {
+        try {
+            // Remove everything from async storage
+            await SecureStore.deleteItemAsync('secure_token');
+            await AsyncStorage.removeItem('name');
+            await AsyncStorage.removeItem('email');
+            await AsyncStorage.removeItem('username');
+            await AsyncStorage.removeItem('rank');
+            await AsyncStorage.removeItem('wins');
+            await AsyncStorage.removeItem('losses');
+            await AsyncStorage.removeItem('draws');
+            await AsyncStorage.removeItem('imageUrl');
+            await AsyncStorage.removeItem('imageTTL');
+            navigation.navigate('LogIn');
+        } catch (error) {
+            console.error('Error deleting the token:', error);
+        }
     }
 
     return (

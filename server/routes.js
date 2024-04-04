@@ -1,7 +1,13 @@
 import express from 'express';
 import multer from 'multer';
-import { signup, login, isAuth } from './auth.js';
-import { getImage, getGames, getInfo } from './getters.js';
+import { signup, login, isAuth, googleVerify } from './auth.js';
+import { getImage, getGames, getInfo, getPuzzle } from './getters.js';
+import { changeDetails, deleteAccount, saveClashOutcome } from './updaters.js';
+import path from 'path'; // Import the path module
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const storage = multer.memoryStorage();
 const formDataUpload = multer({ storage: storage });
@@ -11,17 +17,18 @@ const router = express.Router();
 router.post('/getimage', getImage);
 router.post('/getgames', getGames);
 router.post('/getinfo', getInfo);
+router.post('/getpuzzle', getPuzzle);
+router.post('/deleteaccount', deleteAccount);
+router.post('/saveclashoutcome', saveClashOutcome);
+router.post('/auth/google', googleVerify);
+router.post('/changedetails', formDataUpload.single('profilePicture'), (req, res, next) => { changeDetails(req, res, next); });
 
 router.post('/login', login);
 
 router.post('/signup', formDataUpload.single('profilePicture'), (req, res, next) => {
-    // const file = req.file;
-    // const name = req.body.name;
-    // const email = req.body.email;
-
     signup(req, res, next);
-
 });
+
 
 router.get('/private', isAuth);
 
@@ -30,8 +37,8 @@ router.get('/public', (req, res, next) => {
 });
 
 // will match any other path
-router.use('/', (req, res, next) => {
-    res.status(404).json({error : "page not found"});
-});
+router.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, './public/index.html'));
+})
 
 export default router;

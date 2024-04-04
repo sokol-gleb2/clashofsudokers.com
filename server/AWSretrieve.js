@@ -1,12 +1,13 @@
 import aws from 'aws-sdk';
+import { accessKeyId_MAIN, secretAccessKey_MAIN, region_MAIN, bucketName_MAIN } from './config'
 
 const S3 = aws.S3;
 
 
 const s3 = new S3({
-  accessKeyId: 'AKIA4VUBUDEPP2VPIQKN',
-  secretAccessKey: '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',
-  region: 'eu-west-2'
+    accessKeyId: accessKeyId_MAIN,
+    secretAccessKey: secretAccessKey_MAIN,
+    region: region_MAIN
 });
 
 export default async function retrieveImage(username) {
