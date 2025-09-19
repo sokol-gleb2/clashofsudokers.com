@@ -8,7 +8,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from './config';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 // https://docs.amplify.aws/react-native/start/getting-started/installation/
 // https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally
@@ -16,10 +15,6 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 // https://docs.expo.dev/versions/latest/sdk/imagepicker/
 
 const SignUpScreen = ({navigation}) => {
-
-    GoogleSignin.configure({
-        webClientId: 'YOUR_WEB_CLIENT_ID_FROM_GOOGLE_CONSOLE',
-    });
 
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
@@ -181,50 +176,6 @@ const SignUpScreen = ({navigation}) => {
     };
 
 
-    const googleSignIn = async () => {
-        try {
-            await GoogleSignin.hasPlayServices();
-            const userInfo = await GoogleSignin.signIn();
-            setIsProcessing(true);
-            // Send userInfo.idToken to backend
-            fetch(`${API_URL}/auth/google`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({token: userInfo.idToken}),
-            })
-            .then(async res => { 
-                setIsProcessing(false);
-                try {
-                    const jsonRes = await res.json();
-                    if (res.status !== 200) {
-                        setIsError(true);
-                        if (jsonRes.message == "AUTH_ERROR") {
-                            setMessage("Wrong username or password :(");
-                        }
-                    } else {
-                        SecureStore.setItemAsync('secure_token', jsonRes.token)
-                            .then(() => {
-                                navigation.navigate('Home'); // Navigate after the token is successfully saved
-                            })
-                            .catch((error) => {
-                                console.log(error.message); // Handle any errors in saving the token
-                            });
-                    }
-                } catch (err) {
-                    console.log(err);
-                };
-            })
-            .catch(err => {
-                console.log(err);
-            });
-        } catch (error) {
-          console.error(error);
-        }
-      };
-
-
 
     const [showPassword, setShowPassword] = useState(false); 
     const toggleShowPassword = () => { 
@@ -322,11 +273,6 @@ const SignUpScreen = ({navigation}) => {
                         <MaterialCommunityIcons name={'account'} color={'#673AB7'} size={70} style={styles.uploadImageButtonIcon} />
                     </TouchableHighlight>
                 </View>
-                {/* {image && <Image source={{ uri: image }} style={{ width: 200, height: 200, borderRadius: 100 }} />}
-                <View style={styles.imageButtonContainer}>
-                    <Button title="" onPress={pickImage} style={styles.uploadImageButton} />
-                    <MaterialCommunityIcons name={'account'} color={'#673AB7'} size={70} style={styles.uploadImageButtonIcon} />
-                </View> */}
             </View>
 
 
@@ -354,7 +300,7 @@ const SignUpScreen = ({navigation}) => {
                         <Text style={[{fontSize: 17, marginRight: 4}]}>Apple</Text>
                     </View>
                 </TouchableHighlight>
-                <TouchableHighlight style={styles.appleViewHightlight} onPress={googleSignIn}>
+                <TouchableHighlight style={styles.appleViewHightlight}>
                     <View style={styles.appleView}>
                         <Image style={styles.googleIcon} source={require('./images/google-icon.png')}/>
                         <Text style={[{fontSize: 17}]}>Google</Text>

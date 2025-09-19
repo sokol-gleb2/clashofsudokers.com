@@ -1,15 +1,10 @@
-import { useState, useCallback, useEffect } from 'react'; 
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { useFonts } from 'expo-font';
-// import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect, useState } from 'react';
 
+const GameStats = React.memo(({lockTimer, lockedOutTimers, lockTimerDisplayBool, youScore, opponentScore, opponentName, setOuterTime, endBool}) => {
 
-const GameStats = ({lockTimer, lockedOutTimers, lockTimerDisplayBool, youScore, opponentScore, opponentName, setDurationMinutes, setDurationSeconds}) => {
-
-    const [minutes, setMinutes] = useState(0);
-    const [seconds, setSeconds] = useState(0);
-    const [minutesDisplay, setMinutesDisplay] = useState('00');
-    const [secondsDisplay, setSecondsDisplay] = useState('00');
+    const [localTime, setLocalTime] = useState(823);
 
     const [fontsLoaded] = useFonts({
         'Nunito-ExtraBold': require('../assets/fonts/Nunito-ExtraBold.ttf'),
@@ -17,48 +12,28 @@ const GameStats = ({lockTimer, lockedOutTimers, lockTimerDisplayBool, youScore, 
         'Nunito-Bold': require('../assets/fonts/Nunito-Bold.ttf'),
     });
 
-    // Handle layout after fonts are loaded
-    const onLayoutRootView = useCallback(async () => {
-        if (fontsLoaded) {
-            await SplashScreen.hideAsync();
+    useEffect(() => {
+        if (endBool) {
+            setOuterTime(localTime);
         }
-    }, [fontsLoaded]);
+    }, [endBool])
+
 
     useEffect(() => {
         let intervalId;
-        if (fontsLoaded) {
-            intervalId = setInterval(() => {
-                setSeconds((prevSeconds) => {
-                    if (prevSeconds === 59) {
-                        setMinutes((prevMinutes) => {
-                            const newMinutes = prevMinutes + 1;
-                            setDurationMinutes(newMinutes);
-                            setMinutesDisplay(newMinutes < 10 ? `0${newMinutes}` : `${newMinutes}`);
-                            setDurationSeconds(0);
-                            return newMinutes;
-                        });
-                        return 0;
-                    } else {
-                        setDurationSeconds(prevSeconds + 1);
-                        return prevSeconds + 1;
-                    }
-                });
-            }, 1000);
-        }
+        intervalId = setInterval(() => {
+            setLocalTime(seconds => seconds + 1);
+        }, 1000);
 
-        return () => {
-            if (intervalId) clearInterval(intervalId); // This cleans up the interval on component unmount or fonts reloaded
-        };
-    }, [fontsLoaded]); // Dependency array includes fontsLoaded to restart timer on font load
+        return () => clearInterval(intervalId);
+    }, []);
 
-    useEffect(() => {
-        setSecondsDisplay(seconds < 10 ? `0${seconds}` : `${seconds}`);
-    }, [seconds]);
+    const formatTime = () => {
+        const minutes = Math.floor(localTime / 60);
+        const seconds = localTime % 60;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
 
-    // This effect is to ensure we call onLayoutRootView once fontsLoaded changes.
-    useEffect(() => {
-        onLayoutRootView();
-    }, [fontsLoaded, onLayoutRootView]);
 
     if (!fontsLoaded) {
         return null;
@@ -81,13 +56,12 @@ const GameStats = ({lockTimer, lockedOutTimers, lockTimerDisplayBool, youScore, 
                 </View>
                 <View style={styles.clockContainer}>
                     <View style={styles.clock}>
-                        <Text style={styles.clockText}>{minutesDisplay} : {secondsDisplay}</Text>
+                        <Text style={styles.clockText}>{formatTime()}</Text>
                     </View>
                 </View>
             </View>
             <View style={styles.timers}>
                 {lockTimerDisplayBool ? <Text style={styles.lockTimer}>{lockTimer.toString()}</Text> : null}
-                {/* {lockedOutTimerDisplayBool ? <Text style={styles.lockedOutTimer}>{lockedOutTimer.toString()}</Text> : null} */}
                 {Object.keys(lockedOutTimers).map((key) => (
                     <Text key={key} style={styles.lockedOutTimer}>
                         {lockedOutTimers[key].toString()}
@@ -96,7 +70,7 @@ const GameStats = ({lockTimer, lockedOutTimers, lockTimerDisplayBool, youScore, 
             </View>
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     flex: {

@@ -10,6 +10,7 @@ import GamePlay from './GamePlay';
 import LookingForOpponent from './LookingForOpponent';
 import Settings from './Settings';
 import ProfileSettings from './ProfileSettings';
+import EndGame from './EndGame';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,7 @@ export default function App() {
                 />
                 <Stack.Screen name="LookingForOpponent" component={LookingForOpponent} />
                 <Stack.Screen name="GamePlay" component={GamePlay} />
+                <Stack.Screen name="EndGame" component={EndGame} />
                 <Stack.Screen
                     name="SignUp"
                     component={SignUpScreen}

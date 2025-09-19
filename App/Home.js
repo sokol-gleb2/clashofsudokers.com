@@ -165,11 +165,8 @@ const Home = ({navigation}) => {
         const fetchData = async () => {
             const token = await SecureStore.getItemAsync('secure_token');
             if (token == null) {
-                console.log("oh no");
                 navigation.navigate('LogIn')
             } else {
-                console.log("all good");
-
                 try {
                     const userDataFetched = await retrieveUserData();
                     if (userDataFetched != null) {
@@ -207,10 +204,20 @@ const Home = ({navigation}) => {
                 try {
     
                     const previousGamesData = await retrievePreviousGames();
-                    console.log("PreviousGames");
-                    console.log(previousGamesData);
                     if (previousGamesData != null) {
-                        setGames(previousGamesData);
+                        console.log(previousGamesData);
+                        let new_arr = [];
+                        if (userData.username == "glebby") {
+                            new_arr.push({
+                                "game_id": "test1", "opponent": {"rank": 800, "username": "benjiii"}, "rank_diff": -39, "result": "L"
+                            })
+                        } else {
+                            new_arr.push({
+                                "game_id": "test1", "opponent": {"rank": 800, "username": "glebby"}, "rank_diff": 141, "result": "W"
+                            })
+                        }
+                        new_arr.push(previousGamesData[0])
+                        setGames(new_arr);
                         if (games.length > 0) {
                             setNoGamesYetBanner(false);
                         } else if (games.length > 5) {
@@ -287,7 +294,14 @@ const Home = ({navigation}) => {
     }
 
     const onNewGameHandler = () => {
-        navigation.navigate("LookingForOpponent")
+        // navigation.navigate("LookingForOpponent")
+        let opponent;
+        if (userData.username == "glebby") {
+            opponent = {username: "benjiii", name: "Benjamin Fletcher", rating: 800, wins: 0, losses: 1, draws: 0};
+        } else {
+            opponent = {username: "glebby", name: "Gleb Sokolovski", rating: 800, wins: 1, losses: 0, draws: 0}
+        }
+        navigation.navigate("EndGame", {user: userData, opponent: opponent})
     }
 
     const onMenuPressed = () => {
@@ -386,7 +400,7 @@ const Home = ({navigation}) => {
                     ))}
                     {noGamesYetBanner ? 
                         <View style={styles.game}>
-                            <Text style={styles.noGamesYet}>No Games Yet</Text>
+                            {/* <Text style={styles.noGamesYet}>No Games Yet</Text> */}
                         </View> 
                     : null}
                     {/* <View style={styles.game}>

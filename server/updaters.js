@@ -90,7 +90,7 @@ const deleteAccount = (req, res, next) => {
         })
 }
 
-
+// UNTESTED!!
 const saveClashOutcome = (req, res, next) => {
     const token = req.body.token
     const decoded = jwt.verify(token, 'secret');

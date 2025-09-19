@@ -1,5 +1,5 @@
 import aws from 'aws-sdk';
-import { accessKeyId_MAIN, secretAccessKey_MAIN, region_MAIN, bucketName_MAIN } from './config'
+import { accessKeyId_MAIN, secretAccessKey_MAIN, region_MAIN } from './config.js'
 
 const S3 = aws.S3;
 

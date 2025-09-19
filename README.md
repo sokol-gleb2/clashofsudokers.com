@@ -1,6 +1,15 @@
 # Clash of Sudokers
 
-Welcome to Clash Of Sudokers, a multiplayer Sudoku game. Follow these instructions to set up and run the game locally on your machine.
+Welcome to Clash Of Sudokers, a multiplayer Sudoku game. 
+
+Sudoku Player Rating Algorithm (inspired by the chess player rating algorithm) built with Reinforcement Learning, that takes into account parameters such as:
+    • Complexity of the puzzle
+    • Possession of the board at the end of the match
+    • The duration of the match
+    • Difference of players’ rating before the sudoku clash
+    • Number of puzzles solved before the clash
+
+Follow these instructions to set up and run the game locally on your machine.
 
 ## Prerequisites
 

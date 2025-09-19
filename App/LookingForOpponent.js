@@ -85,8 +85,6 @@ const LookingForOpponent = ({navigation}) => {
         if (webSocket && Object.keys(user).length > 0) {
             webSocket.on('message', (message) => {
                 const data = JSON.parse(message);
-                console.log(data.to);
-                console.log(user);
                 if (data.to === user.username) {
                     const info = data;
                     const message = info.message;
@@ -101,7 +99,6 @@ const LookingForOpponent = ({navigation}) => {
                             profilePicture: info.fromProfilePicture
                         });
                         setOpponentFound(true);
-                        console.log(opponent);
     
                         // echo back that we are ready on this end
                         sendMessage({

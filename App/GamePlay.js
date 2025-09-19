@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'; 
+import { useState, useCallback, useEffect, useMemo } from 'react'; 
 import { StyleSheet, Text, View, TouchableHighlight } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 import { SafeAreaView } from 'react-native';
@@ -35,13 +35,76 @@ import io from 'socket.io-client';
 
 const GamePlay = ({route, navigation}) => {
     const { user, opponent, puzzle, clash_id } = route.params;
-    console.log(puzzle);
 
     const gridSize = 9;
-    const [grid, setGrid] = useState(Array.from({ length: gridSize }, () => Array(gridSize).fill(-1)));
-    const [notes, setNotes] = useState(Array(gridSize).fill(null).map(() => Array(gridSize).fill(null).map(() => [])));
-    const [solution, setSolution] = useState(Array.from({ length: gridSize }, () => Array(gridSize).fill(-1)));
+    // const [grid, setGrid] = useState(Array.from({ length: gridSize }, () => Array(gridSize).fill(-1)));
+    const [grid, setGrid] = useState([[5, 8, 6, 1, 4, 7, 3, 9, 2], [4, 7, 9, 5, 2, 3, 1, 6, 8], [2, 3, 1, 9, 6, 8, 5, 4, 7], [6, 9, 4, 8, 3, 1, 7, 2, 5], [1, 5, 3, 7, 9, 2, 6, 8, 4], [7, 2, 8, 6, 5, 4, 9, 3, 1], [8, 6, 2, 3, 7, 5, 4, 1, 9], [3, 1, 5, 4, 8, 9, 2, 7, 6], [9, 4, 7, 2, 1, 6, 8, 5, -1]]);
+    // const [solution, setSolution] = useState(Array.from({ length: gridSize }, () => Array(gridSize).fill(-1)));
+    const [solution, setSolution] = useState([[5, 8, 6, 1, 4, 7, 3, 9, 2], [4, 7, 9, 5, 2, 3, 1, 6, 8], [2, 3, 1, 9, 6, 8, 5, 4, 7], [6, 9, 4, 8, 3, 1, 7, 2, 5], [1, 5, 3, 7, 9, 2, 6, 8, 4], [7, 2, 8, 6, 5, 4, 9, 3, 1], [8, 6, 2, 3, 7, 5, 4, 1, 9], [3, 1, 5, 4, 8, 9, 2, 7, 6], [9, 4, 7, 2, 1, 6, 8, 5, 3]]);
     const [gridStates, setGridStates] = useState(Array.from({ length: gridSize }, () => Array(gridSize).fill('E'))); // Empty <- other options: 'F' filled, 'FY' filled you, 'FO' filled opponent, 'LY' locked you, 'LO' locked opponent, 'LOUT' you are locked out (for 5 secs), 'NY' you are in notes mode
+
+    const [youScore, setYouScore] = useState(0);
+    const [opponentScore, setOpponentScore] = useState(0);
+    
+    useEffect(() => {
+        if (user.username == "benjiii") {
+            setGridStates([['F', 'FO', 'FO', 'FY', 'FY', 'FO', 'FO', 'F', 'FO'],
+            ['FO', 'FO', 'F', 'FY', 'F', 'F', 'FO', 'F', 'FY'],
+            ['FO', 'F', 'FO', 'F', 'FO', 'FY', 'FY', 'FO', 'F'],
+            ['F', 'FY', 'FO', 'F', 'FY', 'FO', 'FY', 'F', 'FY'],
+            ['F', 'F', 'FY', 'F', 'FO', 'FO', 'FY', 'FY', 'FY'],
+            ['FY', 'F', 'F', 'FY', 'F', 'FY', 'F', 'FY', 'FY'],
+            ['FY', 'FY', 'F', 'FY', 'FY', 'FO', 'F', 'FY', 'FO'],
+            ['FY', 'FO', 'FO', 'F', 'FO', 'FY', 'FY', 'FO', 'FY'],
+            ['F', 'FY', 'F', 'FO', 'FY', 'F', 'FY', 'FB', 'E']]);
+
+            setYouScore(31);
+            setOpponentScore(25);
+        } else {
+            setGridStates([['F', 'FY', 'FY', 'FO', 'FO', 'FY', 'FY', 'F', 'FY'],
+            ['FY', 'FY', 'F', 'FO', 'F', 'F', 'FY', 'F', 'FO'],
+            ['FY', 'F', 'FY', 'F', 'FY', 'FO', 'FO', 'FY', 'F'],
+            ['F', 'FO', 'FY', 'F', 'FO', 'FY', 'FO', 'F', 'FO'],
+            ['F', 'F', 'FO', 'F', 'FY', 'FY', 'FO', 'FO', 'FO'],
+            ['FO', 'F', 'F', 'FO', 'F', 'FO', 'F', 'FO', 'FO'],
+            ['FO', 'FO', 'F', 'FO', 'FO', 'FY', 'F', 'FO', 'FY'],
+            ['FO', 'FY', 'FY', 'F', 'FY', 'FO', 'FO', 'FY', 'FO'],
+            ['F', 'FO', 'F', 'FY', 'FO', 'F', 'FO', 'FB', 'E']])
+            
+            setYouScore(25);
+            setOpponentScore(31);
+        }
+    }, [user])
+
+    // useEffect(() => {
+    //     if (puzzle) {
+    //         let newGrid = Array.from({ length: gridSize }, () => Array(gridSize).fill(-1));
+    //         let newSolution = Array.from({ length: gridSize }, () => Array(gridSize).fill(-1));
+    //         let newGridStates = Array.from({ length: gridSize }, () => Array(gridSize).fill('E'));
+    //         Array.from(puzzle.puzzle).forEach((char, index) => {
+    //             if (char !== '-') {
+    //                 let num = parseInt(char, 10);
+    //                 newGrid[Math.floor(index / 9)][index % 9] = num;
+    //                 newGridStates[Math.floor(index / 9)][index % 9] = 'F';
+    //             }
+    //         });
+    //         Array.from(puzzle.solution).forEach((char, index) => {
+    //             if (char !== '-') {
+    //                 let num = parseInt(char, 10);
+    //                 newSolution[Math.floor(index / 9)][index % 9] = num;
+    //             }
+    //         });
+    //         setGrid(newGrid);
+    //         setSolution(newSolution);
+    //         setGridStates(newGridStates);
+    //     } else {
+    //         alert("Sorry something went wrong. Please try again!");
+    //         navigation.navigate('Home');
+    //         return null;
+    //     }
+    // }, [puzzle]); // Only re-run the effect if `puzzle` changes    
+
+    const [notes, setNotes] = useState(Array(gridSize).fill(null).map(() => Array(gridSize).fill(null).map(() => [])));
     const [selectedCell, setSelectedCell] = useState({ row: -1, column: -1 });
     const [selectedCellOpponent, setselectedCellOpponent] = useState({ row: -1, column: -1 });
     const [dataLoaded, setDataLoaded] = useState(false); // New state for tracking data loading
@@ -52,108 +115,221 @@ const GamePlay = ({route, navigation}) => {
     const [lockedOutTimers, setLockedOutTimers] = useState({}); // for display the how long user has left on the locked out cell
     const [webSocket, setWebSocket] = useState(null);
 
-    const [youScore, setYouScore] = useState(0);
-    const [opponentScore, setOpponentScore] = useState(0);
     const [opponentName, setOpponentName] = useState('Opponent');
 
     const [durationMinutes, setDurationMinutes] = useState(0);
     const [durationSeconds, setDurationSeconds] = useState(0);
 
+    const [endOfGame, setEndOfGame] = useState(false);
+    const [time, setTime] = useState(null);
+
     const [playingMode, setPlayingMode] = useState("play");
+
+
+    const [displaySolutions, setDisplaySOlutions] = useState(false);
 
     const onToggleClicked = (mode) => {
         setPlayingMode(mode);
     }
 
+    // useEffect(() => {
+    //     if (solution) {
+    //         console.log(solution);
+    //     }
+    // }, [solution])
+
+
+    // useEffect(() => {
+    //     if (displaySolutions) {
+    //         let row = -1;
+    //         let column = -1;
+    //         for (let i = 0; i < 9; i++) {
+    //             for (let j = 0; j < 9; j++) {
+    //                 if (grid[i][j] == -1) {
+    //                     row = i;
+    //                     column = j;
+    //                     break;
+    //                 }
+    //             }
+    //             if (row != -1 && column != -1) {
+    //                 break;
+    //             }
+    //         }
+    //         let newGrid = [...solution];
+    //         newGrid[row][column] = -1;
+    //         setGrid(newGrid);
+    //         console.log("grid", grid);
+
+    //         let ys = 0;
+    //         let os = 0;
+    //         let newStates;
+    //         if (user.username == "glebby") {
+    //             newStates = [['F', 'F', 'FY', 'FY', 'F', 'FO', 'FO', 'F', 'FY'],
+    //             ['F', 'F', 'FY', 'FY', 'FO', 'F', 'F', 'F', 'FO'],
+    //             ['F', 'FY', 'FY', 'FY', 'FO', 'F', 'F', 'FO', 'FY'],
+    //             ['FO', 'F', 'F', 'FY', 'FO', 'F', 'FY', 'FY', 'F'],
+    //             ['F', 'F', 'FY', 'F', 'FY', 'FO', 'F', 'FY', 'FY'],
+    //             ['F', 'F', 'FO', 'F', 'FO', 'F', 'FY', 'FO', 'FY'],
+    //             ['F', 'F', 'F', 'F', 'FY', 'FY', 'FY', 'F', 'F'],
+    //             ['LB', 'FO', 'FY', 'FO', 'F', 'FY', 'F', 'F', 'FY'],
+    //             ['F', 'F', 'F', 'FO', 'FY', 'FO', 'FY', 'FO', 'E']];
+
+    //         } else {
+    //             [['F', 'F', 'FO', 'FO', 'F', 'FY', 'FY', 'F', 'FO'],
+    //             ['F', 'F', 'FO', 'FO', 'FY', 'F', 'F', 'F', 'FY'],
+    //             ['F', 'FO', 'FO', 'FO', 'FY', 'F', 'F', 'FY', 'FO'],
+    //             ['FY', 'F', 'F', 'FO', 'FY', 'F', 'FO', 'FO', 'F'],
+    //             ['F', 'F', 'FO', 'F', 'FO', 'FY', 'F', 'FO', 'FO'],
+    //             ['F', 'F', 'FY', 'F', 'FY', 'F', 'FO', 'FY', 'FO'],
+    //             ['F', 'F', 'F', 'F', 'FO', 'FO', 'FO', 'F', 'F'],
+    //             ['LB', 'FY', 'FO', 'FY', 'F', 'FO', 'F', 'F', 'FO'],
+    //             ['F', 'F', 'F', 'FY', 'FO', 'FY', 'FO', 'FY', 'E']]
+    //         }
+    //         setGridStates(newStates);
+
+    //         for (let i = 0; i < 9; i++) {
+    //             for (let j = 0; j < 9; j++) {
+    //                 if (newStates[i][j] == "FY") {
+    //                     ys++;
+    //                 } else if (newStates[i][j] == "FO") {
+    //                     os++;
+    //                 } else if (newStates[i][j] == "FB") {
+    //                     ys++;
+    //                     os++;
+    //                 }
+    //             }
+    //         }
+
+    //         setYouScore(ys);
+    //         setOpponentScore(os);
+
+
+    //         // set scores
+
+    //     }
+    // }, [displaySolutions, solution, grid, user])
+
     useEffect(() => {
+
         const socket = io(`http://${API}:3001`);
-        
-        socket.on('message', (message) => {
-            const data = JSON.parse(message);
-            console.log(data);
 
-            if (data.clash_id && data.clash_id == clash_id && data.to == user.username) {
-                if (data.type == "MOVE") {
-                    if (data.moveType == "LOCK") {
-
-                        // TODO: if cell is locked by user, then set it to LB - Locked by Both
-
-                        const [row, column] = data.coor
-                        var newGridStates = [...gridStates];
-
-                        if (gridStates[row][column] == "LY") {
-                            // you've clicked it at the same time - HANDLE SSE
-
-                            newGridStates[row][column] = "LB";
-                        } else {
-                            newGridStates[row][column] = "LO";
-                        }
-
-                        setGridStates(newGridStates);
-
-                        setselectedCellOpponent({ row: row, column: column});
-                        setOpponentLockTimer(5);
-
-
-                    } else if (data.moveType == "FILLED") {
-
-                        // TODO: if cell is filled by user, then set it to FB - Filled by Both
-
-                        const [row, column] = data.coor
-                        var newGridStates = [...gridStates];
-
-                        if (gridStates[row][column] == "FY") {
-                            // you've clicked it at the same time - HANDLE SSE
-
-                            newGridStates[row][column] = "FB";
-                        } else {
-                            newGridStates[row][column] = "FO";
-                        }
-
-                        setGridStates(newGridStates);
-
-                        const answer = data.answer
-
-                        let newGrid = [...grid];
-                        newGrid[row][column] = answer;
-                        setGrid(newGrid);
-
-                        let end = true;
-                        for (let i = 0; i < 9; i++) {
-                            for (let j = 0; j < 9; j++) {
-                                if (grid[i][j] == -1) {
-                                    end = false;
-                                    break;
-                                }
-                            }
-                        }
-            
-                        if (end) {
-                            if (youScore > opponentScore) {
-                                sendMessage({ clash_id: clash_id, to: opponent.username, type: "DURATION", durationMinutes: durationMinutes, durationSeconds: durationSeconds });
-                                goToEndScreen()
-                            } 
-                        }
-
-                    }
-                } else if (data.type == "DURATION") {
-                    const minutes = data.durationMinutes;
-                    const seconds = data.durationSeconds;
-                    setDurationMinutes(minutes);
-                    setDurationSeconds(seconds);
-                    goToEndScreen()
-
-                }
-            }
-            
-        });
-        
         setWebSocket(socket);
-
+    
         return () => {
             socket.disconnect();
         };
+
     }, []);
+
+
+
+    useEffect(() => {
+
+        if (webSocket != null) {
+            
+            webSocket.on('message', (message) => {
+                let data;
+                try {
+                    data = JSON.parse(message);
+                } catch (e) {
+                    console.error("Error parsing message:", message);
+                    return;
+                }
+    
+                console.log(data);
+    
+                if (data.clash_id && data.clash_id == clash_id && data.to == user.username) {
+                    if (data.type == "MOVE") {
+                        if (data.moveType == "LOCK") {
+    
+                            // TODO: if cell is locked by user, then set it to LB - Locked by Both
+    
+                            const [row, column] = data.coor
+                            var newGridStates = [...gridStates];
+    
+                            if (gridStates[row][column] == "LY") {
+                                // you've clicked it at the same time - HANDLE SSE
+    
+                                newGridStates[row][column] = "LB";
+                            } else {
+                                newGridStates[row][column] = "LO";
+                            }
+    
+                            setGridStates(newGridStates);
+    
+                            setselectedCellOpponent({ row: row, column: column});
+                            setOpponentLockTimer(5);
+    
+    
+                        } else if (data.moveType == "FILLED") {
+    
+                            // setOpponentLockTimer(0)
+                            // setselectedCellOpponent({ row: -1, column: -1});
+    
+                            // TODO: if cell is filled by user, then set it to FB - Filled by Both
+    
+                            const [row, column] = data.coor
+                            var newGridStates = [...gridStates];
+
+
+    
+                            if (gridStates[row][column] == "FY") {
+                                // you've clicked it at the same time - HANDLE SSE
+    
+                                newGridStates[row][column] = "FB";
+                                setOpponentScore(score => score + 1);
+                                setYouScore(score => score + 1);
+                            } else {
+                                newGridStates[row][column] = "FO";
+                                setOpponentScore(score => score + 1);
+                            }
+    
+    
+                            setGridStates(newGridStates);
+
+                            const answer = data.answer
+    
+                            let newGrid = [...grid];
+                            newGrid[row][column] = answer;
+                            setGrid(newGrid);
+
+                            setOpponentLockTimer(0);
+    
+    
+    
+                            let end = true;
+                            for (let i = 0; i < 9; i++) {
+                                for (let j = 0; j < 9; j++) {
+                                    if (grid[i][j] == -1) {
+                                        end = false;
+                                        break;
+                                    }
+                                }
+                            }
+                
+                            if (end) {
+                                setEndOfGame(true);
+                                if (youScore > opponentScore) {
+                                    sendMessage({ clash_id: clash_id, to: opponent.username, type: "DURATION", durationMinutes: durationMinutes, durationSeconds: durationSeconds });
+                                    goToEndScreen()
+                                } 
+                            }
+    
+                        }
+                    } else if (data.type == "DURATION") {
+                        const minutes = data.durationMinutes;
+                        const seconds = data.durationSeconds;
+                        setDurationMinutes(minutes);
+                        setDurationSeconds(seconds);
+                        goToEndScreen()
+    
+                    }
+                }
+                
+            });
+
+        }
+    }, [grid, gridStates, webSocket]);
 
     const sendMessage = (message) => {
         webSocket.emit('message', JSON.stringify(message));
@@ -163,30 +339,33 @@ const GamePlay = ({route, navigation}) => {
 
     // Effect to handle opponent locking a cell
     useEffect(() => {
-        let interval;
-        if (opponentLockTimer > 0) {
-            interval = setInterval(() => {
-                setOpponentLockTimer(lockTimer => lockTimer - 1);
-                let newGrid = [...grid];
-                newGrid[selectedCellOpponent.row][selectedCellOpponent.column] = opponentLockTimer;
-                setGrid(newGrid);
-            }, 1000);
-        } else if (opponentLockTimer === 0) {
-            // When lockTimer reaches 0, empty the cell
-            let newGrid = [...grid];
-            newGrid[selectedCellOpponent.row][selectedCellOpponent.column] = -1;
-            setGrid(newGrid);
-
-            setGridStates(prevGridStates => {
-                const newGridStates = [...prevGridStates];
-                newGridStates[selectedCellOpponent.row][selectedCellOpponent.column] = 'E';
-                return newGridStates;
-            });
-
-            setselectedCellOpponent({ row: -1, column: -1});
+        if (puzzle != null && selectedCellOpponent.row != -1 && selectedCellOpponent.column != -1) {
+            let interval;
+            if (opponentLockTimer > 0) {
+                interval = setInterval(() => {
+                    setOpponentLockTimer(lockTimer => lockTimer - 1);
+                    // let newGrid = [...grid];
+                    // newGrid[selectedCellOpponent.row][selectedCellOpponent.column] = opponentLockTimer;
+                    // setGrid(newGrid);
+                }, 1000);
+                // && gridStates[selectedCellOpponent.row][selectedCellOpponent.column] != "FO"
+            } else if (opponentLockTimer === 0 && gridStates[selectedCellOpponent.row][selectedCellOpponent.column] != "FO") {
+                // When lockTimer reaches 0, empty the cell
+                // let newGrid = [...grid];
+                // newGrid[selectedCellOpponent.row][selectedCellOpponent.column] = -1;
+                // setGrid(newGrid);
+    
+                setGridStates(prevGridStates => {
+                    const newGridStates = [...prevGridStates];
+                    newGridStates[selectedCellOpponent.row][selectedCellOpponent.column] = 'E';
+                    return newGridStates;
+                });
+    
+                setselectedCellOpponent({ row: -1, column: -1});
+            }
+            return () => clearInterval(interval);
         }
-        return () => clearInterval(interval);
-    }, [opponentLockTimer]);
+    }, [opponentLockTimer, selectedCellOpponent, puzzle]);
 
 
 
@@ -275,8 +454,7 @@ const GamePlay = ({route, navigation}) => {
         setLockTimerDisplayBool(false);
     };
 
-    const onCellPressed = (rowIndex, columnIndex) => {
-        console.log(rowIndex + ", " + columnIndex);
+    const onCellPressed = useCallback((rowIndex, columnIndex) => {
         let allow = true;
         var newGridStates = [...gridStates];
         var oldSelectedCoor = [];
@@ -291,38 +469,34 @@ const GamePlay = ({route, navigation}) => {
             }
         }
         if (allow && (gridStates[rowIndex][columnIndex] == "E" || gridStates[rowIndex][columnIndex] == "NY") && playingMode == "play") {
-            // send that you are locking the cell to the opponent over ws:
             const message = {
                 clash_id: clash_id,
                 type: "MOVE",
                 coor: [rowIndex, columnIndex],
-                moveType: "LOCK"
+                moveType: "LOCK",
+                to: opponent.username
             };
             sendMessage(message);
-
+    
             if (oldSelectedCoor.length != 0) {
                 newGridStates[oldSelectedCoor[0]][oldSelectedCoor[1]] = "E";
             }
             newGridStates[rowIndex][columnIndex] = 'LY';
-
-            console.log(rowIndex + ", " + columnIndex);
-
+    
             setSelectedCell({ row: rowIndex, column: columnIndex });
-
-            // setStartDoubleTimeout(true);
+    
             startLockTimer();
-              
         } else if (allow && (gridStates[rowIndex][columnIndex] == "E" || gridStates[rowIndex][columnIndex] == "NY") && playingMode == "notes") {
-            
             if (oldSelectedCoor.length != 0) {
                 newGridStates[oldSelectedCoor[0]][oldSelectedCoor[1]] = "E";
             }
             newGridStates[rowIndex][columnIndex] = 'NY';
             setSelectedCell({ row: rowIndex, column: columnIndex });
         }
-
+    
         setGridStates(newGridStates);
-    }
+    }, [gridStates, playingMode, clash_id, sendMessage, setSelectedCell, startLockTimer]);
+    
 
     const updateCell = (number) => {
         if (selectedCell.row !== -1 && selectedCell.column !== -1) {
@@ -400,49 +574,10 @@ const GamePlay = ({route, navigation}) => {
         navigation.navigate('Home');
     }
 
-
-    useEffect(() => {
-        if (puzzle != null) {
-            let newGrid = Array.from({ length: gridSize }, () => Array(gridSize).fill(-1));
-            let solution = Array.from({ length: gridSize }, () => Array(gridSize).fill(-1));
-            let newGridStates = Array.from({ length: gridSize }, () => Array(gridSize).fill('E'));
-            Array.from(puzzle.puzzle).forEach((char, index) => {
-                if (char != '-') {
-                    let num = parseInt(char)
-                    newGrid[Math.floor(index/9)][index%9] = num;
-                    newGridStates[Math.floor(index/9)][index%9] = 'F';
-                }
-            });
-            Array.from(puzzle.solution).forEach((char, index) => {
-                if (char != '-') {
-                    let num = parseInt(char)
-                    solution[Math.floor(index/9)][index%9] = num;
-                }
-            });
-            setGrid(newGrid);
-            setSolution(solution);
-            setGridStates(newGridStates);
-        } else {
-            alert("Sorry something went wrong. Please try again!");
-            navigation.navigate('Home');
-            return null;
-        }
-    }, []);
-    
-    // const onLayoutRootView = useCallback(async () => {
-    //     if (dataLoaded) {
-    //         await SplashScreen.hideAsync();
-    //     }
-    // }, [dataLoaded]);
-    
-    // if (!dataLoaded) {
-    //     return null;
-    // }
-
     return (
         <View style={styles.container}>
             <SafeAreaView>
-                <GameStats lockTimer={lockTimer.toString()} lockedOutTimers={lockedOutTimers} lockTimerDisplayBool={lockTimerDisplayBool}  youScore={youScore} opponentScore={opponentScore} opponentName={opponentName} setDurationMinutes={setDurationMinutes} setDurationSeconds={setDurationSeconds}/>
+                <GameStats lockTimer={lockTimer.toString()} lockedOutTimers={lockedOutTimers} lockTimerDisplayBool={lockTimerDisplayBool}  youScore={youScore} opponentScore={opponentScore} opponentName={opponentName} setOuterTimer={setTime} endBool={endOfGame} />
                 <SudokuGrid grid={grid} onCellPressed={onCellPressed} gridStates={gridStates} notes={notes} mode={playingMode} />
                 <ToggleButtons mode={playingMode} onToggleClicked={onToggleClicked} />
                 <Buttons updateCell={updateCell} />

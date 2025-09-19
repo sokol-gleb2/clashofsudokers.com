@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { signup, login, isAuth, googleVerify } from './auth.js';
+import { signup, login, isAuth } from './auth.js';
 import { getImage, getGames, getInfo, getPuzzle } from './getters.js';
 import { changeDetails, deleteAccount, saveClashOutcome } from './updaters.js';
 import path from 'path'; // Import the path module
@@ -20,7 +20,6 @@ router.post('/getinfo', getInfo);
 router.post('/getpuzzle', getPuzzle);
 router.post('/deleteaccount', deleteAccount);
 router.post('/saveclashoutcome', saveClashOutcome);
-router.post('/auth/google', googleVerify);
 router.post('/changedetails', formDataUpload.single('profilePicture'), (req, res, next) => { changeDetails(req, res, next); });
 
 router.post('/login', login);

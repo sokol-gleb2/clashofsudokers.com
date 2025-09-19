@@ -1,10 +1,10 @@
 import { StyleSheet, View, Text } from "react-native";
 
 
-const Timer = ({ timeTillStart }) => {
+const Timer = ({ time }) => {
     return (
         <View style={styles.outContainer}>
-            <Text style={styles.text}>Starts in: {timeTillStart}</Text>
+            <Text style={styles.text}>Starts in: {time}</Text>
         </View>
     );
 }

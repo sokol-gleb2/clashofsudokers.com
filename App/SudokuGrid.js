@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 
-const SudokuGrid = ({ grid, onCellPressed, gridStates, notes, mode}) => {
-    // const gridSize = 9;
-    // const grid = Array(gridSize).fill(Array(gridSize).fill('')); // Replace with your Sudoku grid numbers
-    // const [selectedCell, setSelectedCell] = useState({ row: -1, column: -1 });
-    // const [selectedCellOpponent, setselectedCellOpponent] = useState({ row: -1, column: -1 });
+const SudokuGrid = React.memo(({ grid, onCellPressed, gridStates, notes, mode}) => {
 
     const renderCell = (number, rowIndex, columnIndex) => {
         let notesModeOn = false;
@@ -36,7 +32,8 @@ const SudokuGrid = ({ grid, onCellPressed, gridStates, notes, mode}) => {
             }
         }
         if (gridStates[rowIndex][columnIndex] == "F") {
-            textStyle = styles.filledCell
+            // textStyle = styles.filledCell
+            borderStyles.push(styles.filledCell)
         } else if (gridStates[rowIndex][columnIndex] == "FY") {
             borderStyles.push(styles.selectedCell)
         } else if (gridStates[rowIndex][columnIndex] == "LY") {
@@ -91,7 +88,7 @@ const SudokuGrid = ({ grid, onCellPressed, gridStates, notes, mode}) => {
             </View>
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     outerContainer: {
@@ -137,7 +134,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(13, 71, 161, 0.9)',
     },
     filledCell: {
-        color: 'black',
+        backgroundColor: 'black',
         fontSize: 20,
         fontWeight: 'bold',
     },
